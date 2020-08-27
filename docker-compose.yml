@@ -1,0 +1,182 @@
+version: '3.0'
+
+services:
+  zookeeper:
+    image: zookeeper:3.4.11
+    hostname: zookeeper
+    networks:
+      mesos_net:
+        ipv4_address: 172.16.130.2
+
+  master:
+    privileged: true
+    depends_on:
+      - zookeeper
+    image: runner-mesos
+    command: /usr/bin/mesos-master
+    ports:
+      - "5050:5050"
+    networks:
+      mesos_net: 
+        ipv4_address: 172.16.130.3
+    hostname: mesos-master
+    volumes:
+      - ../criteo_mesos:/src/mesos/
+    environment:
+      MESOS_ZK: zk://zookeeper:2181/mesos
+      MESOS_QUORUM: 1
+      MESOS_HOSTNAME: master
+      MESOS_WORK_DIR: /var/tmp/mesos
+      MESOS_LOG_DIR: /var/log/mesos
+  
+  slave1:
+    privileged: true
+    depends_on:
+      - master
+      - zookeeper
+    build: resources/mesos.yml
+    ports:
+      - "5051:5051"
+    networks:
+      mesos_net:
+        ipv4_address: 172.16.130.4
+    hostname: mesos-slave-1
+    volumes:
+      - /home/user/field/project/mesos_simulator/modules:/modules
+      - /home/user/field/project/LoggerCmdModule:/opt/mesos/modules
+    environment:
+      MESOS_PORT: 5051
+      MESOS_MASTER: zk://zookeeper:2181/mesos
+      MESOS_CONTAINERIZERS: mesos
+      MESOS_WORK_DIR: /var/tmp/mesos
+      MESOS_LOG_DIR: /var/log/mesos
+      MESOS_HOSTNAME: slave1
+      MESOS_SYSTEMD_ENABLE_SUPPORT: 0
+      MESOS_MODULES: >-
+        {
+          "libraries": [
+          {
+            "file": "/modules/libmesos_command_modules.so",
+            "modules": [
+            {
+              "name": "com_criteo_mesos_CommandHook",
+              "parameters": [
+                {
+                  "key": "hook_slave_run_task_label_decorator_command",
+                  "value": "/opt/mesos/modules/slaveRunTaskLabelDecorator.sh"
+                },
+                {
+                  "key": "hook_slave_executor_environment_decorator_command",
+                  "value": "/opt/mesos/modules/slaveExecutorEnvironmentDecorator.sh"
+                },
+                {
+                  "key": "hook_slave_remove_executor_hook_command",
+                  "value": "/opt/mesos/modules/slaveRemoveExecutorHook.sh"
+                },
+                {
+                  "key": "debug",
+                  "value": "false"
+                }
+              ]
+            }
+            ]
+          }
+          ]
+        }
+
+  slave2:
+    privileged: true
+    depends_on:
+      - zookeeper
+      - master    
+    #build: mesos_slave
+    build: resources/mesos.yml
+    ports:
+      - "5052:5051"
+    networks:
+      mesos_net:
+        ipv4_address: 172.16.130.5
+    hostname: mesos-slave-2
+    volumes:
+      - /home/user/field/project/mesos_simulator/modules:/modules
+      - /home/user/field/project/LoggerCmdModule:/opt/mesos/modules
+    environment:
+      MESOS_PORT: 5051
+      MESOS_MASTER: zk://zookeeper:2181/mesos
+      MESOS_CONTAINERIZERS: mesos
+      MESOS_WORK_DIR: /var/tmp/mesos
+      MESOS_LOG_DIR: /var/log/mesos
+      MESOS_HOSTNAME: slave2
+      MESOS_SYSTEMD_ENABLE_SUPPORT: 0
+      MESOS_RESOURCE_ESTIMATOR: org_apache_mesos_FixedResourceEstimator
+      MESOS_QOS_CONTROLLER: org_apache_mesos_LoadQoSController
+      MESOS_MODULES: >-
+        {
+          "libraries": [
+          {
+            "file": "/usr/local/lib/libfixed_resource_estimator.so",
+            "modules": {
+              "name": "org_apache_mesos_FixedResourceEstimator",
+              "parameters": {
+                "key": "resources",
+                "value": "cpus:4"
+              }
+            } 
+          },
+          {
+            "file": "/usr/local/lib/libload_qos_controller.so",
+            "modules": {
+              "name": "org_apache_mesos_LoadQoSController",
+              "parameters": [
+              {
+                "key": "load_threshold_5min",
+                "value": "6"
+              },
+              {
+                "key": "load_threshold_15min",
+                "value": "4"
+              }
+              ]
+            }
+          }
+          ]
+         }
+        
+  marathon:
+    depends_on:
+      - master
+      - zookeeper
+    image: mesosphere/marathon:v1.10.25
+    ports:
+      - "8080:8080"
+    networks:
+      mesos_net:
+        ipv4_address: 172.16.130.6
+    hostname: marathon-priority
+    environment:
+      MARATHON_ZK: zk://zookeeper:2181/marathon
+      MARATHON_MASTER: zk://zookeeper:2181/mesos
+
+  opportunistic:
+    depends_on:
+      - master
+      - zookeeper
+    build: marathon
+    ports:
+      - "8081:8080"
+    networks:
+      mesos_net:
+        ipv4_address: 172.16.130.7
+    hostname: opportunistic
+    environment:
+      MARATHON_ZK: zk://zookeeper:2181/opportunistic
+      MARATHON_MASTER: zk://zookeeper:2181/mesos
+
+networks: 
+  mesos_net: 
+    driver: bridge
+    ipam: 
+      driver: default
+      config: 
+        - subnet: 172.16.130.0/24
+

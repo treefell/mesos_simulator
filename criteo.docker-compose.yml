@@ -1,0 +1,253 @@
+# vim: set ts=2 sts=2 sw=2 expandtab:
+version: '2'
+
+x-mesos-slave:
+  &mesos-slave
+  extends:
+    file: resources/mesos.yml
+    service: mesos-slave
+  depends_on:
+    - zookeeper
+    - mesos-master
+  links:
+    - zookeeper:zookeeper
+    - mesos-master:master.mesos
+
+services:
+  zookeeper:
+    image: zookeeper:3.4.11
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      app_net:
+        ipv4_address: 172.16.190.2
+
+  mesos-master:
+    image: runner-mesos
+    command: /usr/bin/mesos-master
+    hostname: localhost
+    ports:
+      - "5050:5050"
+    networks:
+      app_net:
+        ipv4_address: 172.16.190.3
+    links:
+      - zookeeper
+    depends_on:
+      - zookeeper
+    environment:
+      MESOS_ZK: zk://zookeeper:2181/mesos
+      MESOS_CLUSTER: docker-compose
+      MESOS_HOSTNAME: localhost
+      MESOS_WORK_DIR: /var/tmp/mesos
+      MESOS_LOG_DIR: /var/log/mesos
+      LIBPROCESS_IP: 172.16.190.3
+    volumes:
+      - ../criteo_mesos:/src/mesos/
+
+  marathon-service:
+    image: mesosphere/marathon:v1.10.17
+    ports:
+      - "8080:8080"
+    hostname: localhost
+    networks:
+      app_net:
+        ipv4_address: 172.16.190.5
+    links:
+      - zookeeper
+      - mesos-master
+    depends_on:
+      - zookeeper
+      - mesos-master
+    environment:
+      - MARATHON_ZK=zk://zookeeper:2181/marathon
+      - MARATHON_MASTER=zk://zookeeper:2181/mesos
+      - LIBPROCESS_IP=172.16.190.5
+
+  opportunistic:
+    depends_on:
+      - mesos-master
+      - zookeeper
+    build: marathon
+    ports:
+      - "8081:8080"
+    networks:
+      app_net:
+        ipv4_address: 172.16.190.6
+    hostname: opportunistic
+    environment:
+      MARATHON_ZK: zk://zookeeper:2181/opportunistic
+      MARATHON_MASTER: zk://zookeeper:2181/mesos
+
+  slave1:
+    << : *mesos-slave
+    hostname: localhost
+    ports:
+      - "5051:5051"
+      - "11100-11199:11100-11199"
+    environment:
+      MESOS_PORT: 5051
+      LIBPROCESS_IP: 172.16.190.10
+      MESOS_RESOURCES: ports(*):[11100-11199]
+      MESOS_HOOKS: com_criteo_mesos_CommandHook
+      MESOS_MODULES: >-
+        {
+          "libraries": [
+          {
+            "file": "/src/mesos/modules/libmesos_command_modules.so",
+            "modules": [
+            {    
+              "name": "com_criteo_mesos_CommandHook",    
+              "parameters": [    
+              {
+                "key":"module_name",
+                "value": "CommandHook"
+              },
+              {
+                "key": "hook_slave_run_task_label_decorator_command",    
+                "value": "/src/mesos/modules/slaveRunTaskLabelDecorator.sh"
+              },
+              {     
+                "key": "hook_slave_executor_environment_decorator_command",
+                "value": "/src/mesos/modules/slaveExecutorEnvironmentDecorator.sh"
+              },
+              {
+                "key": "hook_slave_remove_executor_hook_command",
+                "value": "/src/mesos/modules/slaveRemoveExecutorHook.sh"
+              },                                                     
+              { 
+                "key": "debug",
+                "value": "false"
+              }
+              ]
+            },
+            {
+              "name": "com_criteo_mesos_CommandIsolator",
+              "parameters": [
+              {
+                "key": "name_module",
+                "value": "isolator"
+              },
+              {
+                "key": "isolator_prepare_command",
+                "value": "/src/mesos/modules/prepare.sh"
+              },
+              {
+                "key": "isolator_prepare_timeout",
+                "value": "10"
+              },
+              {
+                "key": "isolator_cleanup_command",
+                "value": "/src/mesos/modules/cleanup.sh"
+              },
+              {
+                "key": "isolator_watch_command",
+                "value": "/src/mesos/modules/watch.sh"
+              },
+              {
+                "key": "isolator_watch_frequence",
+                "value": "10"
+              },
+              {
+                "key": "debug",
+                "value": "false"
+              }
+              ]
+            },
+            {
+              "name": "com_criteo_mesos_OpportunisticResourceEstimator",
+              "parameters": [
+                {
+                  "key": "name_module",
+                  "value": "ResourceEstimator"
+                },
+                {
+                  "key": "test_script_command",
+                  "value": "/src/mesos/modules/script.sh"
+                },
+                {
+                  "key": "debug",
+                  "value": "true"
+                }
+              ]
+            }
+            ]
+          }
+          ]
+        }
+
+
+
+
+
+    networks:
+      app_net:
+        ipv4_address: 172.16.190.10
+
+  slave2:
+    << : *mesos-slave
+    hostname: localhost
+    ports:
+      - "5052:5052"
+      - "11200-11299:11200-11299"
+    environment:
+      MESOS_PORT: 5052
+      LIBPROCESS_IP: 172.16.190.11
+      MESOS_RESOURCES: ports(*):[11200-11299]
+    networks:
+      app_net:
+        ipv4_address: 172.16.190.11
+
+  slave3:
+    << : *mesos-slave
+    hostname: localhost
+    ports:
+      - "5053:5053"
+      - "11300-11399:11300-11399"
+    environment:
+      MESOS_PORT: 5053
+      LIBPROCESS_IP: 172.16.190.12
+      MESOS_RESOURCES: ports(*):[11300-11399]
+    networks:
+      app_net:
+        ipv4_address: 172.16.190.12
+
+  slave4:
+    << : *mesos-slave
+    hostname: localhost
+    ports:
+      - "5054:5054"
+      - "11400-11499:11400-11499"
+    environment:
+      MESOS_PORT: 5054
+      LIBPROCESS_IP: 172.16.190.13
+      MESOS_RESOURCES: ports(*):[11400-11499]
+    networks:
+      app_net:
+        ipv4_address: 172.16.190.13
+
+  slave5:
+    << : *mesos-slave
+    hostname: localhost
+    ports:
+      - "5055:5055"
+      - "11500-11599:11500-11599"
+    environment:
+      MESOS_PORT: 5055
+      LIBPROCESS_IP: 172.16.190.14
+      MESOS_RESOURCES: ports(*):[11500-11599]
+    networks:
+      app_net:
+        ipv4_address: 172.16.190.14
+
+volumes:
+  dist: {}
+
+networks:
+  app_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.190.0/24
