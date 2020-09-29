@@ -1,0 +1,14 @@
+{"executors":[{"executorInfo":{"executorId":{"value":"sleep.instance-dd0f52f0-ff10-11ea-92b3-0242ac10be05._app.1"},
+"resources":[{"name":"cpus","type":"SCALAR","scalar":{"value":0.1},"allocationInfo":{"role":"*"}},{"name":"mem","type":"SCALAR","scalar":{"value":32},"allocationInfo":{"role":"*"}}],
+"command":{"environment":{"variables":[{"name":"MARATHON_APP_VERSION","value":"2020-09-25T09:24:07.530Z"},{"name":"HOST","value":"localhost"},{"name":"MARATHON_APP_RESOURCE_CPUS","value":"1.0"},{"name":"MARATHON_APP_RESOURCE_GPUS","value":"0"},{"name":"PORT_10000","value":"11175"},{"name":"MESOS_TASK_ID","value":"sleep.instance-dd0f52f0-ff10-11ea-92b3-0242ac10be05._app.1"},{"name":"PORT","value":"11175"},{"name":"MARATHON_APP_RESOURCE_MEM","value":"128.0"},{"name":"PORTS","value":"11175"},{"name":"MARATHON_APP_RESOURCE_DISK","value":"0.0"},{"name":"MARATHON_APP_LABELS","value":""},{"name":"PORT_DEFAULT","value":"11175"},{"name":"MARATHON_APP_ENFORCE_GROUP_ROLE","value":"FALSE"},{"name":"MARATHON_APP_ID","value":"/sleep"},{"name":"PORT0","value":"11175"}]},"value":"/src/mesos/src/mesos-executor","shell":false,"arguments":["mesos-executor","--launcher_dir=/src/mesos/src/"]},
+"frameworkId":{"value":"be8201fb-38b0-4219-aa3b-54e27271c0be-0001"},"name":"Command Executor (Task: sleep.instance-dd0f52f0-ff10-11ea-92b3-0242ac10be05._app.1) (Command: sh -c 'sleep 100')","source":"sleep.instance-dd0f52f0-ff10-11ea-92b3-0242ac10be05._app.1","discovery":{"visibility":"FRAMEWORK","name":"sleep","ports":{"ports":[{"number":11175,"name":"default","protocol":"tcp"}]}}},
+
+"allocated":[{"name":"cpus","type":"SCALAR","scalar":{"value":1.1},"allocationInfo":{"role":"*"}},{"name":"mem","type":"SCALAR","scalar":{"value":160},"allocationInfo":{"role":"*"}},{"name":"ports","type":"RANGES","ranges":{"range":[{"begin":"11175","end":"11175"}]},"allocationInfo":{"role":"*"}}],
+
+"statistics":{"timestamp":1601025891.772377,"cpusLimit":1.1,"memLimitBytes":"167772160"},
+"containerId":{"value":"fbd0fa32-a513-4963-9d21-7f019b18b1a1"},
+"tasks":[{"name":"sleep","id":{"value":"sleep.instance-dd0f52f0-ff10-11ea-92b3-0242ac10be05._app.1"},
+"resources":[{"name":"cpus","type":"SCALAR","scalar":{"value":1},"allocationInfo":{"role":"*"}},{"name":"mem","type":"SCALAR","scalar":{"value":128},"allocationInfo":{"role":"*"}},{"name":"ports","type":"RANGES","ranges":{"range":[{"begin":"11175","end":"11175"}]},"allocationInfo":{"role":"*"}}],
+"labels":{"labels":[{"key":"LABEL_1","value":"test1"},{"key":"LABEL_2","value":"test2"}]}}]}],
+
+"total":[{"name":"ports","type":"RANGES","ranges":{"range":[{"begin":"11100","end":"11199"}]}},{"name":"cpus","type":"SCALAR","scalar":{"value":4}},{"name":"mem","type":"SCALAR","scalar":{"value":14885}},{"name":"disk","type":"SCALAR","scalar":{"value":117284}}]}
