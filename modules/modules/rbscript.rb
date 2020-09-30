@@ -1,6 +1,16 @@
 #!/bin/env ruby
 require 'json'
 
+def createResource(resource) 
+  resourceHash = Hash.new
+  resourceHash.store('name', resource['name'])
+  resourceHash.store('type', resource['type'])
+  resourceHash.store('scalar', Hash['value', resource['scalar']['value']])
+  return resourceLeftOver
+end
+
+#ratio must be equals or under 1
+ratio = 0.25 
 resourceUsageFile = ARGV[0]
 output = ARGV[1]
 File.write('tests', resourceUsageFile)
@@ -29,9 +39,10 @@ counter = 0
           resourceLeftOver[counter].store('name', allocres['name'])
           resourceLeftOver[counter].store('type', allocres['type'])
           puts "leftover: #{resource['scalar']['value'] - allocres['scalar']['value']}"
-          resourceLeftOver[counter].store('scalar', Hash['value', resource['scalar']['value'] - allocres['scalar']['value']])
+          value = resource['scalar']['value']*ratio - allocres['scalar']['value'] < 0 ? 0 : resource['scalar']['value']*ratio - allocres['scalar']['value']  
+          resourceLeftOver[counter].store('scalar', Hash['value', value])
           puts "allocated resource: #{allocres['scalar']['value']}"
-          puts "total resource: #{resource['scalar']['value']}"
+          puts "total resource: #{(resource['scalar']['value']*ratio)}"
           counter += 1
          end
       }
@@ -39,8 +50,7 @@ counter = 0
       resourceLeftOver.push(Hash.new)
       resourceLeftOver[counter].store('name', resource['name'])
       resourceLeftOver[counter].store('type', resource['type'])
-      puts "leftover: #{resource['scalar']['value']}"
-      resourceLeftOver[counter].store('scalar', Hash['value', resource['scalar']['value']])
+      resourceLeftOver[counter].store('scalar', Hash['value', (resource['scalar']['value']*ratio)])
       counter += 1
     end 
     }
