@@ -96,6 +96,8 @@ services:
       MESOS_RESOURCE_ESTIMATOR: com_criteo_mesos_CommandResourceEstimator
       MESOS_QOS_CONTROLLER: com_criteo_mesos_CommandQoSController
       MESOS_QOS_CORRECTION_INTERVAL_MIN: 20secs
+      MESOS_ISOLATION: com_criteo_mesos_CommandIsolator,filesystem/linux,docker/runtime,cgroups/cpuset,cgroups/cpu
+      MESOS_HOOKS: com_criteo_mesos_CommandHook
       MESOS_MODULES: >-
         {
           "libraries": [
@@ -111,7 +113,7 @@ services:
                 },
                 {
                   "key": "resource_estimator_oversubscribable_command",
-                  "value": "/src/mesos/modules/rbscript.rb"
+                  "value": "/src/mesos/modules/REscript.rb"
                 },
                 {
                   "key": "debug",
@@ -135,11 +137,70 @@ services:
                   "value": "true"
                 }
               ]
+            },
+            {
+              "name": "com_criteo_mesos_CommandHook",
+              "parameters": [
+                {
+                  "key": "hook_slave_run_task_label_decorator_command",
+                  "value": "/src/mesos/modules/slaveRunTaskLabelDecorator.sh"
+                },
+                {
+                  "key": "hook_slave_executor_environment_decorator_command",
+                  "value": "/src/mesos/modules/slaveExecutorEnvironmentDecorator.sh"
+                },
+                {
+                  "key": "hook_slave_remove_executor_hook_command",
+                  "value": "/src/mesos/modules/slaveRemoveExecutorHook.sh"
+                },
+                {
+                  "key": "module_name",
+                  "value": "example_hook"
+                },
+                {
+                  "key": "debug",
+                  "value": "false"
+                }
+              ]
+            },
+            {
+          "name": "com_criteo_mesos_CommandIsolator",
+          "parameters": [
+            {
+              "key": "isolator_prepare_command",
+              "value": "/usr/local/bin/cpuset_create.rb"
+            },
+            {
+              "key": "isolator_prepare_timeout",
+              "value": "10"
+            },
+            {
+              "key": "isolator_cleanup_command",
+              "value": "/src/mesos/modules/cleanup.sh"
+            },
+            {
+              "key": "isolator_watch_command",
+              "value": "/src/mesos/modules/watch.sh"
+            },
+            {
+              "key": "isolator_watch_frequence",
+              "value": "10"
+            },
+            {
+              "key": "module_name",
+              "value": "example_isolator"
+            },
+            {
+              "key": "debug",
+              "value": "true"
             }
-            ]
+          ]
+         }
+          ]
           }
           ]
         }
+
     networks:
       app_net:
         ipv4_address: 172.16.190.10
